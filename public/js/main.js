@@ -1,10 +1,11 @@
 import Compositor from './compositor.js';
-import Entity from './entity.js';
-import Timer from './timer.js';
+import Entity from './Entity.js';
+import Timer from './Timer.js';
+import Keyboard from './KeyboardState.js'
+
 import { loadLevel } from './loaders.js';
 import { loadBackgroundSprites } from './sprites.js'
 import { createBackgroundLayer, createSpriteLayer } from './layers.js';
-
 import { createMario } from './entities.js';
 
 const canvas = document.getElementById('screen');
@@ -22,11 +23,21 @@ Promise.all([
 
     //comp.layers.push(bgLayer);
 
-    const gravity = 30;
+    const gravity = 1200;
     mario.pos.set(64, 180);
     mario.vel.set(200, -600);
 
-    
+    const SPACE = 32;
+    const input = new Keyboard();
+    input.addMapping(32, keyState => {
+        console.log(keyState);
+        if (keyState) {
+            mario.jump.start();
+        } else {
+            mario.jump.cancel();
+        }
+    });
+    input.listenTo(window);
 
     const spriteLayer = createSpriteLayer(mario);
     comp.layers.push(spriteLayer);
@@ -39,9 +50,9 @@ Promise.all([
     timer.update = function update(deltaTime) {
         comp.draw(context);
         mario.update(deltaTime);
-        mario.vel.y += gravity;
+        mario.vel.y += gravity * deltaTime;
         accTime -= deltaTime;
-    
+
     }
 
     timer.start();
