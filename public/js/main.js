@@ -1,11 +1,9 @@
-import Compositor from './compositor.js';
+import Compositor from './Compositor.js';
 import Entity from './Entity.js';
 import Timer from './Timer.js';
-import Keyboard from './KeyboardState.js'
-
+import { createCollisionLayer } from './layers.js';
+import { setupKeyboard } from './input.js';
 import { loadLevel } from './loaders.js';
-import { loadBackgroundSprites } from './sprites.js'
-import { createBackgroundLayer, createSpriteLayer } from './layers.js';
 import { createMario } from './entities.js';
 
 const canvas = document.getElementById('screen');
@@ -13,48 +11,39 @@ const context = canvas.getContext('2d');
 
 Promise.all([
     createMario(),
-    loadBackgroundSprites(),
     loadLevel('1-1'),
-]).then(([mario, bgSprite, level])=> {
-
-    const comp = new Compositor();
-
-    const bgLayer = createBackgroundLayer(level.backgrounds, bgSprite);
-
-    //comp.layers.push(bgLayer);
-
-    const gravity = 1200;
+]).then(([mario, level])=> {
     mario.pos.set(64, 180);
-    mario.vel.set(200, -600);
 
-    const SPACE = 32;
-    const input = new Keyboard();
-    input.addMapping(32, keyState => {
-        console.log(keyState);
-        if (keyState) {
-            mario.jump.start();
-        } else {
-            mario.jump.cancel();
-        }
-    });
+    level.comp.layers.push(createCollisionLayer(level));
+
+    level.entities.add(mario);
+
+    const input = setupKeyboard(mario);
     input.listenTo(window);
 
-    const spriteLayer = createSpriteLayer(mario);
-    comp.layers.push(spriteLayer);
+    // ================= Debugging ======================
+        debuggMove(mario);
+    // ==================================================
 
-    const deltaTime = 1/60;
-    let accTime = 0;
-    let lastTime = 0;
-
-    const timer = new Timer(1/60);
+    const deltaTime = 1 / 60;
+    const timer = new Timer(deltaTime);
     timer.update = function update(deltaTime) {
-        comp.draw(context);
-        mario.update(deltaTime);
-        mario.vel.y += gravity * deltaTime;
-        accTime -= deltaTime;
+        level.update(deltaTime);
 
+        level.comp.draw(context);
     }
 
     timer.start();
 });
 
+const debuggMove = (entity) => {
+    ['mousedown', 'mousemove'].forEach(eventName => {
+        canvas.addEventListener(eventName, event => {
+            if (event.buttons === 1) {
+                entity.vel.set(0, 0);
+                entity.pos.set(event.offsetX, event.offsetY);
+            }
+        });
+    });
+}
